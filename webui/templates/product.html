@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}TeaStore Product{% endblock %}
+
+{% block content %}
+<div class="container" id="main">
+	<div class="row">
+		{% include "categorylist.html"%}
+		<div class="col-sm-6 col-md-6 col-lg-8">
+			<form action="/cart/add" method="POST">
+				<div class="row">
+					<input type='hidden' name="productid" value="{{ product.id }}">
+					<div class="col-sm-12 showcase"><div>
+					<h2 class="minipage-title">{{ product.name }}</h2>
+						<img class="productpicture"
+							src="{{ product.image }}"
+							alt="{{ product.name }}"
+							{% if product.img_name in failed_images %}
+							data-img-id="{{ product.id }}"
+							data-img-name="{{ product.img_name }}"
+							{% endif %}>
+						<blockquote>{{ product.description }}</blockquote>
+						<span>Price: ${{ product.price_in_cents/100 }}</span><br/>
+						<input name="addToCart" class="btn" value="Add to Cart" type="submit">
+					</div></div>
+				</div>
+				
+			</form>
+		</div>
+		{% include "recommender.html"%}
+	</div>
+</div>
+{% endblock %}

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}TeaStore Home{% endblock %}
+
+{% block content %}
+<div class="container" id="main">
+    <div class="row">
+        {% include "categorylist.html"%}
+        <div id="MainImage" class="col-sm-6 col-lg-8">
+            <img class="titleimage" src="{{ url_for('static', filename='images/front.png') }}" align="middle" />
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,24 @@
+<div class="thumbnail">
+	<form action="/cart/add" method="POST">
+		<table>
+			<tr>
+				<td class="productthumb">
+					<input type='hidden' name="productid" value="{{ product.id }}">
+					<a href="/product?id={{ product.id }}">
+						<img src="{{ product.image }}" alt="{{ product.name }}" 
+							{% if product.img_name in failed_images %}
+								data-img-name="{{ product.img_name }}"
+								data-img-id="{{ product.id }}"
+							{% endif %}>
+					</a>
+				</td>
+				<div class="divider col-sm-1"></div>
+				<td class="divider"></td>
+				<td class="description">
+					<b>{{ product.name }}</b> <br> <span> Price: ${{ product.price_in_cents/100 }}
+					</span><br> <span>{{ product.description }}</span>
+				</td>
+			</tr>
+		</table><input name="addToCart" class="btn" value="Add to Cart" type="submit">
+	</form>
+</div>

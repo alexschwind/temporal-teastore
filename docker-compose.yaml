@@ -1,0 +1,102 @@
+services:
+  temporal-core:
+    build:
+      context: ./temporal-core
+    ports:
+      - 8233:8233
+      - 7233:7233
+
+  temporal-worker:
+    build:
+      context: ./temporal-worker
+    volumes:
+      - ./temporal-stuff:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      - temporal-core
+    restart: always
+
+  recommender-starter:
+    build: 
+      context: ./recommender_starter
+    volumes:
+      - ./temporal-stuff:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      - temporal-core
+      - temporal-worker
+
+  inventory:
+    build: 
+      context: ./inventory
+      dockerfile: ../flask.Dockerfile
+    volumes:
+      - ./inventory:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      - product
+
+  product:
+    build: 
+      context: ./product
+      dockerfile: ../flask.Dockerfile
+    volumes:
+      - ./product:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  order:
+    build: 
+      context: ./order
+      dockerfile: ../flask.Dockerfile
+    volumes:
+      - ./order:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  user:
+    build: 
+      context: ./user
+      dockerfile: ../flask.Dockerfile
+    volumes:
+      - ./user:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  recommender:
+    build: 
+      context: ./recommender
+      dockerfile: ../flask.Dockerfile
+    volumes:
+      - ./recommender:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  image:
+    build: 
+      context: ./image
+      dockerfile: ../flask.Dockerfile
+    volumes:
+      - ./image:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  webui:
+    build:
+      context: ./webui
+    volumes:
+      - ./temporal-stuff:/app
+      - ./webui/static/:/app/static/
+      - ./webui/templates/:/app/templates/
+    environment:
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      - temporal-core
+      - temporal-worker
+    ports:
+      - 5000:5000
+
+

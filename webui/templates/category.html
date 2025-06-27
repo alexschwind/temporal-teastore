@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}TeaStore {{ category.name }}{% endblock %}
+
+{% block content %}
+<div class="container" id="main">
+    <div class="row">
+        {% include "categorylist.html"%}
+        <div class="col-md-9 col-lg-10 col-sm-12">
+            <h2 class="minipage-title">{{ category.name }}</h2>
+            <div class="row">
+                {% for product in products %}
+                <div class="col-sm-6 col-md-4 col-lg-3 placeholder">
+                    {% include "product_item.html"%}
+                </div>
+                {% endfor %}
+                <div class="row">
+                    <div class="col-sm-6">
+                        <ul class="pagination">
+                            {% for pagination_item in pagination %}
+                            {% if pagination_item == "previous" %}
+                            <li><a href="/category?category={{ category.id }}&page={{ current_page_number-1 }}">{{ pagination_item }}</a>
+                            </li>
+                            {% elif pagination_item == "next" %}
+                            <li><a href="/category?category={{ category.id }}&page={{ current_page_number+1 }}">{{ pagination_item }}</a>
+                            </li>
+                            {% elif pagination_item == current_page_number %}
+                            <li class="active"><a href="/category?category={{ category.id }}&page={{ pagination_item }}">{{ pagination_item }}</a>
+                            </li>
+                            {% else %}
+                            <li><a href="/category?category={{ category.id }}&page={{ pagination_item }}">{{ pagination_item }}</a>
+                            </li>
+                            {% endif %}
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    <div class="col-sm-6">
+                        <form id="formpages" method="post">
+                            <select name="number" onChange="this.form.submit()">
+                                {% for number in product_number_options %}
+                                {% if number == selected_number_of_products %}
+                                <option value="{{ number }}" selected="selected">{{ number }}</option>
+                                {% else %}
+                                <option value="{{ number }}">{{ number }}</option>
+                                {% endif %}
+                                {% endfor %}
+                            </select> <span> products per page</span>
+                        </form>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+    {% endblock %}

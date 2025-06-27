@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en-US">
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel=" icon" href="{{ url_for('static', filename='images/icon.ico') }}">
+    <title>{% block title %}{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap/css/bootstrap.min.css') }}" type="text/css" />
+    <link rel="StyleSheet" href="{{ url_for('static', filename='teastore.css') }}" type="text/css" media="screen" />
+</head>
+
+<body>
+    <nav id="headnav" class="navbar navbar-default container">
+        <div class="container-fluid">
+            <div class="navbar-header">
+                <button id="navbarbutton" type="button" class="navbar-toggle collapsed" data-toggle="collapse"
+                    data-target="#navbar" aria-controls="navbar">
+                    <span class="sr-only">Toggle navigation</span> <span class="icon-bar"></span> <span
+                        class="icon-bar"></span> <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="/">
+                    <img src="{{ url_for('static', filename='images/icon.png') }}" width="30" height="30" class="d-inline-block align-top" alt="">
+                    TeaStore</a>
+            </div>
+            <div id="navbar" class="navbar-collapse collapse">
+                <ul class="nav navbar-nav navbar-right headnavbarlist">
+                    {% if login %}
+                    <li><a href="/logout">Log out</a></li>
+                    <li><a href="/profile"><span class="glyphicon glyphicon glyphicon-user"
+                                aria-hidden="true"></span></a></li>
+                    {% else %}
+                    <li><a href="/login">Sign in</a></li>
+                    {% endif %}
+                    <li><a href="/cart"><span class="glyphicon glyphicon-shopping-cart" aria-hidden="true"></span></a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-warning alert-dismissable" role="alert">
+                    <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+        {% endwith %}
+    </nav>
+    {% block content %}{% endblock %}
+    <script src="{{ url_for('static', filename='bootstrap/js/jquery.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='bootstrap/js/bootstrap.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='resizingscript.js') }}"></script>
+    <script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const maxRetries = 5;
+        let attempt = 0;
+
+        function retryMissingImages() {
+            const retryImages = document.querySelectorAll('img[data-img-name][data-img-id]');
+            if (retryImages.length === 0) return;
+            console.log("---------------------------------------------------------")
+            console.log(retryImages)
+            console.log("calling retryMissingImages with attempt: ", attempt)
+
+            retryImages.forEach(img => {
+                const name = img.dataset.imgName;
+                const imgId = img.dataset.imgId;
+
+                // Skip if max retries reached
+                console.log("fetching: ", `/retry-image?name=${encodeURIComponent(name)}`, " for imgID ", imgId)
+                fetch(`/retry-image?name=${encodeURIComponent(name)}`)
+                    .then(resp => resp.json())
+                    .then(data => {
+                        if (!data.error && data.image) {
+                            img.src = data.image;
+                            img.removeAttribute("data-img-name");
+                        }
+                    })
+                    .catch(err => {
+                        console.warn("Image fetch failed for", imgId, err);
+                    });
+            });
+
+            attempt++;
+            const delay = 1000 * attempt;
+
+            if (attempt > maxRetries) return;
+
+            setTimeout(retryMissingImages, delay);
+        }
+
+        retryMissingImages();
+    });
+    </script>
+</body>
+
+</html>
