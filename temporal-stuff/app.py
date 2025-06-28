@@ -7,6 +7,7 @@ import random
 from temporalio.client import Client
 from workflows import ShippingWorkflow, LoginWorkflow, OrderWorkflow
 from shared import LoginInput, OrderInput, CartItem, OrderInfo
+from datetime import datetime
 
 app = Flask(__name__)
 app.secret_key = "123456789"
@@ -20,7 +21,7 @@ async def connect_temporal(app):
 def get_client() -> Client:
     return current_app.temporal_client
 
-MAX_CACHE_SIZE = 100
+MAX_CACHE_SIZE = 3
 category_cache: dict[str, dict] = {}
 products_cache: dict[str, list[dict]] = {}
 
@@ -98,6 +99,12 @@ async def ensure_session_id():
             OrderInput(session["session_id"], (session["user_id"] if "user_id" in session else None)),
             id=session["session_id"], task_queue="my-task-queue"
         )
+    # cache newest 3 user orders in session
+    if "user_id" in session and "last_orders" not in session:
+        orders: list[dict] = get_user_orders(session["user_id"])
+        if orders:
+            sorted_orders = sorted(orders, key=lambda x: datetime.strptime(x.get("time"), "%Y-%m-%dT%H:%M:%S.%f"))
+            session["last_orders"] = sorted_orders[:3]
 
 def get_category_list():
     try:
@@ -128,10 +135,13 @@ def get_user(user_id):
         return session.get("user_data", None)
 
 def get_user_orders(user_id):
-    response = requests.get(f"http://order:5000/api/orders/{user_id}")
-    response.raise_for_status() 
-    data = response.json()
-    return data
+    try:
+        response = requests.get(f"http://order:5000/api/orders/{user_id}")
+        response.raise_for_status() 
+        data = response.json()
+        return data
+    except:
+        return []
 
 @app.route("/profile")
 async def profile():
@@ -155,6 +165,16 @@ async def profile():
             "email": "-"
         }
     orders: list[dict] = get_user_orders(user_id)
+
+    if orders:
+        sorted_orders = sorted(orders, key=lambda x: datetime.strptime(x.get("time"), "%Y-%m-%dT%H:%M:%S.%f"))
+        session["last_orders"] = sorted_orders[:3]
+        is_orders_fresh = True
+    else:
+        if "last_orders" in session:
+            orders = session["last_orders"]
+        is_orders_fresh = False
+
     for order in orders:
         if bool(order.get("shipping_done")):
             order["status"] = "Delivered"
@@ -164,7 +184,7 @@ async def profile():
             results = await handle.query(ShippingWorkflow.get_status)
             order["status"] = results.status
 
-    return render_template_base("profile.html", category_list=category_list, user=user, orders=orders)
+    return render_template_base("profile.html", category_list=category_list, user=user, orders=orders, is_orders_fresh=is_orders_fresh)
 
 async def call_login(username, password):
     client = get_client()
