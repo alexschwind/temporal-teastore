@@ -10,10 +10,12 @@ from shared import LoginInput, OrderInput, CartItem, OrderInfo
 
 app = Flask(__name__)
 app.secret_key = "123456789"
+app.is_ready = False
 
 async def connect_temporal(app):
     client = await Client.connect("temporal-core:7233")
     app.temporal_client = client
+    app.is_ready = True
 
 def get_client() -> Client:
     return current_app.temporal_client
@@ -484,6 +486,17 @@ async def place_order():
 
     session.pop("session_id")
     return redirect("/")
+
+@app.route('/healthz')
+def healthz():
+    return jsonify(status="alive"), 200
+
+@app.route('/ready')
+def ready():
+    if app.is_ready:
+        return jsonify(status="ready"), 200
+    else:
+        return jsonify(status="not ready"), 503
 
 if __name__ == "__main__":
     asyncio.run(connect_temporal(app))

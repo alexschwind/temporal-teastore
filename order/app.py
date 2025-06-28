@@ -4,6 +4,9 @@ import os
 import pickle
 from threading import Lock
 
+app = Flask(__name__)
+app.is_ready = False
+
 class OrderItem:
     def __init__(self, id: str, product_id: str, order_id: str, quantity: int):
         self.id = id
@@ -54,43 +57,45 @@ class Order:
 ORDER_FILE = "orders.pkl"
 ITEMS_FILE = "items.pkl"
 
-# Load persisted data if available
-if os.path.exists(ORDER_FILE):
-    with open(ORDER_FILE, "rb") as f:
-        orders = pickle.load(f)
-else:
-    orders = [
-        Order("1", "1", datetime.now().isoformat(), 12499, "Alice Smith", "123 Main St", "Apt 4", "Visa", "4111111111111111", "12/25", "1234"),
-        Order("2", "2", datetime.now().isoformat(), 12499, "Bob Jones", "123 Main St", "Apt 4", "Visa", "4111111111111111", "12/25", "1234")
-    ]
+try:
+    if os.path.exists(ORDER_FILE):
+        with open(ORDER_FILE, "rb") as f:
+            orders = pickle.load(f)
+    else:
+        orders = [
+            Order("1", "1", datetime.now().isoformat(), 12499, "Alice Smith", "123 Main St", "Apt 4", "Visa", "4111111111111111", "12/25", "1234"),
+            Order("2", "2", datetime.now().isoformat(), 12499, "Bob Jones", "123 Main St", "Apt 4", "Visa", "4111111111111111", "12/25", "1234")
+        ]
 
-    # Save initial state
-    with open(ORDER_FILE, "wb") as f:
-        pickle.dump(orders, f)
+        # Save initial state
+        with open(ORDER_FILE, "wb") as f:
+            pickle.dump(orders, f)
 
-# Load persisted data if available
-if os.path.exists(ITEMS_FILE):
-    with open(ITEMS_FILE, "rb") as f:
-        order_items = pickle.load(f)
-else:
-    order_items = [
-        OrderItem("1", "1", "1", 1),
-        OrderItem("2", "2", "1", 1),
-        OrderItem("3", "2", "2", 1),
-        OrderItem("4", "3", "2", 1),
-        OrderItem("5", "5", "2", 3),
-        OrderItem("6", "6", "2", 2),
-        OrderItem("7", "7", "2", 3),
-        OrderItem("8", "8", "2", 1),
-    ]
+    # Load persisted data if available
+    if os.path.exists(ITEMS_FILE):
+        with open(ITEMS_FILE, "rb") as f:
+            order_items = pickle.load(f)
+    else:
+        order_items = [
+            OrderItem("1", "1", "1", 1),
+            OrderItem("2", "2", "1", 1),
+            OrderItem("3", "2", "2", 1),
+            OrderItem("4", "3", "2", 1),
+            OrderItem("5", "5", "2", 3),
+            OrderItem("6", "6", "2", 2),
+            OrderItem("7", "7", "2", 3),
+            OrderItem("8", "8", "2", 1),
+        ]
 
-    # Save initial state
-    with open(ITEMS_FILE, "wb") as f:
-        pickle.dump(order_items, f)
+        # Save initial state
+        with open(ITEMS_FILE, "wb") as f:
+            pickle.dump(order_items, f)
+
+    app.is_ready = True
+except:
+    app.is_ready = False
 
 lock = Lock()
-
-app = Flask(__name__)
 
 @app.route("/api/orders/<user_id>", methods=["GET"])
 def get_orders_by_user(user_id):
@@ -172,3 +177,21 @@ def create_order_item():
         )
         order_items.append(item)
     return jsonify(item.to_dict()), 200
+
+@app.route("/healthz")
+def healthz():
+    if lock.acquire(timeout=1):  # try for 1 second
+        try:
+            return jsonify(status="alive"), 200
+        finally:
+            lock.release()
+    else:
+        return jsonify(status="locked"), 500
+
+@app.route("/ready")
+def ready():
+    if not app.is_ready:
+        return jsonify(status="not ready"), 503
+    else:
+        with lock:
+            return jsonify(status="ready"), 200

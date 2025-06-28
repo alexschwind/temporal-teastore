@@ -3,7 +3,11 @@ import base64
 from flask import Flask, jsonify, request
 
 app = Flask(__name__)
+app.is_ready = False
 IMAGE_FOLDER = "images"
+
+if os.path.exists(IMAGE_FOLDER):
+    app.is_ready = True
 
 @app.route("/api/images", methods=["GET"])
 def get_images_base64():
@@ -29,3 +33,14 @@ def get_images_base64():
             print(f"Failed to read {name}: {e}")
 
     return jsonify(images_data)
+
+@app.route("/healthz")
+def healthz():
+    return jsonify(status="alive"), 200
+
+@app.route("/ready")
+def ready():
+    if not app.is_ready:
+        return jsonify(status="not ready"), 503
+    else:
+        return jsonify(status="ready"), 200
