@@ -295,18 +295,20 @@ class LoginWorkflow:
     async def run(self, input: LoginInput):
 
         retry_policy = RetryPolicy(
-            maximum_attempts=3,
-            initial_interval=timedelta(seconds=5),
+            maximum_interval=timedelta(seconds=3)
         )
 
-        user = await workflow.execute_activity(
-            get_user, input.username,
-            start_to_close_timeout=timedelta(seconds=15),
-            retry_policy=retry_policy,
-        )
+        try:
 
-        if user.get("password") == input.password:
-            output = LoginOutput(user.get("id"), user.get("username"), user.get("realname"), user.get("email"))
-            return output
-        else:
-            return None
+            user = await workflow.execute_activity(
+                get_user, input.username,
+                start_to_close_timeout=timedelta(seconds=15),
+                retry_policy=retry_policy,
+            )
+
+            if user.get("password") == input.password:
+                return LoginOutput(True, user.get("id"), user.get("username"), user.get("realname"), user.get("email"))
+            else:
+                return LoginOutput(False, "", "", "", "")
+        except ActivityError:
+            return LoginOutput(False, "", "", "", "")

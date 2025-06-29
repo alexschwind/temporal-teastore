@@ -7,7 +7,7 @@ import random
 from temporalio.client import Client
 from workflows import ShippingWorkflow, LoginWorkflow, OrderWorkflow
 from shared import LoginInput, OrderInput, CartItem, OrderInfo
-from datetime import datetime
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
 app.secret_key = "123456789"
@@ -99,6 +99,35 @@ async def ensure_session_id():
             OrderInput(session["session_id"], (session["user_id"] if "user_id" in session else None)),
             id=session["session_id"], task_queue="my-task-queue"
         )
+    if "login_pending" in session and session["login_pending"] and "user_id" not in session:
+        print("Login is pending")
+        client = get_client()
+        login_wf_id = f"login:{session['session_id']}"
+        try:
+            handle = client.get_workflow_handle(login_wf_id)
+            result = await handle.result(rpc_timeout=timedelta(milliseconds=500))  # Short timeout
+            if result:
+                if result["success"]:
+                    session["user_id"] = result["user_id"]
+                    session["user_data"] = {
+                        "realname": result["realname"],
+                        "email": result["email"],
+                        "username": result["username"],
+                    }
+                    session.pop("login_pending", None)
+
+                    # signal order workflow that login succeeded
+                    order_handle = client.get_workflow_handle(session["session_id"])
+                    await order_handle.signal(OrderWorkflow.upgrade_user, result["user_id"])
+                    flash("You are logged in now.")
+                else:
+                    session.pop("login_pending", None)
+                    flash("Login failed.")
+            
+        except Exception:
+            # No result yet — login still pending
+            pass
+
     # cache newest 3 user orders in session
     if "user_id" in session and "last_orders" not in session:
         orders: list[dict] = get_user_orders(session["user_id"])
@@ -150,7 +179,7 @@ async def profile():
     if not login:
         flash("You are not signed in.")
         response = make_response(redirect("/login"))
-        response.headers["Referer"] = "/profile"
+        response.headers["Referer"] = "/"
         return response
 
     category_list = get_category_list()
@@ -187,26 +216,20 @@ async def profile():
     return render_template_base("profile.html", category_list=category_list, user=user, orders=orders, is_orders_fresh=is_orders_fresh)
 
 async def call_login(username, password):
-    client = get_client()
-    result = await client.execute_workflow(
-        LoginWorkflow.run, 
-        LoginInput(username, password),
-        id="login:"+session["session_id"], task_queue="my-task-queue"
-    )
-
-    if result is not None:
-        session["user_id"] = result["user_id"]
-        session["user_data"] = {
-            "realname": result["realname"],
-            "email": result["email"],
-            "username": result["username"],
-        }
-        client = get_client()
-        handle = client.get_workflow_handle(session["session_id"])
-        await handle.signal(OrderWorkflow.upgrade_user, result["user_id"])
+    try:
+        if not session.get("login_pending", False):
+            client = get_client()
+            await client.start_workflow(
+                LoginWorkflow.run, 
+                LoginInput(username, password),
+                id="login:"+session["session_id"], task_queue="my-task-queue"
+            )
+            session["login_pending"] = True
+        
         return True
-    
-    return False
+    except:
+        session["login_pending"] = False
+        return False
 
 @app.route("/login", methods=["GET", "POST"])
 async def login():
@@ -215,15 +238,20 @@ async def login():
         password = request.form.get("password")
         referer = request.form.get("referer", None)
         if await call_login(username, password):
+            flash("Login process started.")
             if referer:
                 return redirect(referer)
             return redirect("/")
         else:
-            flash('Invalid credentials. Please try again.')
+            flash('Could not start the login process. Please try again.')
             return render_template_base("login.html")
     
     if "user_id" in session:
         flash("You are already logged in. Please sign out before logging in.")
+        return redirect("/")
+    
+    if session.get("login_pending", False):
+        flash("Your login process is still running.")
         return redirect("/")
 
     category_list = get_category_list()
@@ -235,6 +263,7 @@ def call_logout():
     session.pop("session_id")
     session.pop("user_id")
     session.pop("user_data")
+    session.pop("login_pending", None)
     return True
 
 @app.route("/logout")
@@ -450,7 +479,7 @@ async def update_cart():
 def checkout():
     if not "user_id" in session:
         response = make_response(redirect("/login"))
-        response.headers["Referer"] = "/order"
+        response.headers["Referer"] = "/cart"
         return response
 
     return redirect("/order")
