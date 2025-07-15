@@ -1,0 +1,415 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inventory
+  labels:
+    app: teastore
+    run: inventory
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: teastore
+      run: inventory
+  template:
+    metadata:
+      labels:
+        app: teastore
+        run: inventory
+    spec:
+      containers:
+        - name: inventory
+          image: teastore/inventory
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: inventory
+  labels:
+    app: teastore
+    run: inventory
+spec:
+  ports:
+    - port: 5000
+      targetPort: 5000
+  selector:
+    run: inventory
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: product
+  labels:
+    app: teastore
+    run: product
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: teastore
+      run: product
+  template:
+    metadata:
+      labels:
+        app: teastore
+        run: product
+    spec:
+      containers:
+        - name: product
+          image: teastore/product
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: product
+  labels:
+    app: teastore
+    run: product
+spec:
+  ports:
+    - port: 5000
+      targetPort: 5000
+  selector:
+    run: product
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order
+  labels:
+    app: teastore
+    run: order
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: teastore
+      run: order
+  template:
+    metadata:
+      labels:
+        app: teastore
+        run: order
+    spec:
+      containers:
+        - name: order
+          image: teastore/order
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: order
+  labels:
+    app: teastore
+    run: order
+spec:
+  ports:
+    - port: 5000
+      targetPort: 5000
+  selector:
+    run: order
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user
+  labels:
+    app: teastore
+    run: user
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: teastore
+      run: user
+  template:
+    metadata:
+      labels:
+        app: teastore
+        run: user
+    spec:
+      containers:
+        - name: user
+          image: teastore/user
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: user
+  labels:
+    app: teastore
+    run: user
+spec:
+  ports:
+    - port: 5000
+      targetPort: 5000
+  selector:
+    run: user
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: recommender
+  labels:
+    app: teastore
+    run: recommender
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: teastore
+      run: recommender
+  template:
+    metadata:
+      labels:
+        app: teastore
+        run: recommender
+    spec:
+      containers:
+        - name: recommender
+          image: teastore/recommender
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: recommender
+  labels:
+    app: teastore
+    run: recommender
+spec:
+  ports:
+    - port: 5000
+      targetPort: 5000
+  selector:
+    run: recommender
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: image
+  labels:
+    app: teastore
+    run: image
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: teastore
+      run: image
+  template:
+    metadata:
+      labels:
+        app: teastore
+        run: image
+    spec:
+      containers:
+        - name: image
+          image: teastore/image
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: image
+  labels:
+    app: teastore
+    run: image
+spec:
+  ports:
+    - port: 5000
+      targetPort: 5000
+  selector:
+    run: image
+---
+##### TEMPORAL CORE #####
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: temporal-core
+  labels:
+    app: teastore
+    run: temporal-core
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: teastore
+      run: temporal-core
+  template:
+    metadata:
+      labels:
+        app: teastore
+        run: temporal-core
+    spec:
+      containers:
+        - name: temporal-core
+          image: teastore/temporal-core
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8233
+            - containerPort: 7233
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: temporal-core
+  labels:
+    app: teastore
+    run: temporal-core
+spec:
+  selector:
+    app: teastore
+    run: temporal-core
+  ports:
+    - name: http
+      port: 8233
+      targetPort: 8233
+    - name: grpc
+      port: 7233
+      targetPort: 7233
+---
+##### TEMPORAL WORKER #####
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: temporal-worker
+  labels:
+    app: teastore
+    run: temporal-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: teastore
+      run: temporal-worker
+  template:
+    metadata:
+      labels:
+        app: teastore
+        run: temporal-worker
+    spec:
+      containers:
+        - name: temporal-worker
+          image: teastore/temporal-worker
+          imagePullPolicy: IfNotPresent
+---
+##### RECOMMENDER STARTER #####
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: recommender-starter
+  labels:
+    app: teastore
+    run: recommender-starter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: teastore
+      run: recommender-starter
+  template:
+    metadata:
+      labels:
+        app: teastore
+        run: recommender-starter
+    spec:
+      containers:
+        - name: recommender-starter
+          image: teastore/recommender-starter
+          imagePullPolicy: IfNotPresent
+---
+##### WEB UI #####
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webui
+  labels:
+    app: teastore
+    run: webui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: teastore
+      run: webui
+  template:
+    metadata:
+      labels:
+        app: teastore
+        run: webui
+    spec:
+      containers:
+        - name: webui
+          image: teastore/webui
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: webui
+  labels:
+    app: teastore
+    run: webui
+spec:
+  selector:
+    app: teastore
+    run: webui
+  ports:
+    - port: 5000
+      targetPort: 5000
+---
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: teastore-gateway
+spec:
+  selector:
+    istio: ingressgateway # default ingress gateway
+  servers:
+    - port:
+        number: 80
+        name: http
+        protocol: HTTP
+      hosts:
+        - "*"
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: teastore-webui-vs
+spec:
+  hosts:
+    - "*"
+  gateways:
+    - teastore-gateway
+  http:
+    - match:
+        - uri:
+            prefix: /
+      route:
+        - destination:
+            host: webui
+            port:
+              number: 5000
+      timeout: 7s
+    
