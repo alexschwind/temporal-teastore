@@ -92,7 +92,7 @@ minikube start
 ```bash
 kubectl apply -f teastore-kube.yaml # modified, add the gateway for metrics
 minikube tunnel # start gateway
-# goto http://localhost to see the page
+# goto http://localhost to see the page (private window suggested to prevent old cookies)
 ```
 
 ## Start Dashboard
